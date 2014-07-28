@@ -1,9 +1,9 @@
-if (Components) { // Mozilla
+if (window.Components) { // Mozilla
   kryptos.hash.HMAC = function(key, msg, digestmod) {
-    var hasher = Components.classes["@mozilla.org/security/hmac;1"].createInstance(Components.interfaces.nsICryptoHMAC);
-    var keyObject = Components.classes["@mozilla.org/security/keyobjectfactory;1"]
-                      .getService(Components.interfaces.nsIKeyObjectFactory)
-                      .keyFromString(Components.interfaces.nsIKeyObject.HMAC, key);
+    var hasher = window.Components.classes["@mozilla.org/security/hmac;1"].createInstance(window.Components.interfaces.nsICryptoHMAC);
+    var keyObject = window.Components.classes["@mozilla.org/security/keyobjectfactory;1"]
+                      .getService(window.Components.interfaces.nsIKeyObjectFactory)
+                      .keyFromString(window.Components.interfaces.nsIKeyObject.HMAC, key);
     
     hasher.init(digestmod, keyObject);
     var data = kryptos.toByteArray(msg);
@@ -11,8 +11,8 @@ if (Components) { // Mozilla
     return hasher.finish(false);
   };
 
-  kryptos.hash.HMAC_SHA = Components.classes["@mozilla.org/security/hmac;1"].createInstance(Components.interfaces.nsICryptoHMAC).SHA1;
-  kryptos.hash.HMAC_MD5 = Components.classes["@mozilla.org/security/hmac;1"].createInstance(Components.interfaces.nsICryptoHMAC).MD5;
+  kryptos.hash.HMAC_SHA = window.Components.classes["@mozilla.org/security/hmac;1"].createInstance(window.Components.interfaces.nsICryptoHMAC).SHA1;
+  kryptos.hash.HMAC_MD5 = window.Components.classes["@mozilla.org/security/hmac;1"].createInstance(window.Components.interfaces.nsICryptoHMAC).MD5;
 } else {  // Chrome
   kryptos.hash.HMAC = function(key, msg, digestmod) {
     var blocksize = 64;

@@ -29,11 +29,10 @@ paramikojs.SFTPClient = function(sock, transport, callback) {
   // request # -> SFTPFile
   this._expecting = {};
   this._deferred_packet = null;
-  this.logger = paramikojs.util.get_logger();
 
   var self = this;
   var send_version_callback = function(server_version) {
-    self._log(INFO, 'Opened sftp connection (server version ' + server_version + ')');
+    console.info('Opened sftp connection (server version ' + server_version + ')');
     callback(self);
   }
   this._send_version(send_version_callback);
@@ -57,17 +56,13 @@ paramikojs.SFTPClient.from_transport = function(t, callback) {
 };
 
 paramikojs.SFTPClient.prototype = {
-  _log : function(level, msg) {
-    this.logger.log(level, msg);
-  },
-
   /*
     Close the SFTP session and its underlying channel.
 
     @since: 1.4
   */
   close : function() {
-    this._log(INFO, 'sftp session closed.');
+    console.info('sftp session closed.');
     this.sock.close();
   },
 
@@ -127,7 +122,7 @@ paramikojs.SFTPClient.prototype = {
   listdir_attr : function(path, listdir_callback) {
     path = path || '.';
     path = this._adjust_cwd(path);
-    this._log(DEBUG, 'listdir(' + path + ')');
+    console.debug('listdir(' + path + ')');
 
     var self = this;
     var opendir_callback = function(result, eofError, ioError) {
@@ -170,13 +165,13 @@ paramikojs.SFTPClient.prototype = {
         try {
           filename = self.transport.toUTF8.convertStringToUTF8(filename, "UTF-8", 1);
         } catch(ex) {
-          self._log(DEBUG, ex);
+          console.debug(ex);
         }
         var longname = result[1].get_string();
         try {
           longname = self.transport.toUTF8.convertStringToUTF8(longname, "UTF-8", 1);
         } catch(ex) {
-          self._log(DEBUG, ex);
+          console.debug(ex);
         }
         var attr = new paramikojs.SFTPAttributes()._from_msg(result[1], filename, longname);
         if (filename != '.' && filename != '..') {
@@ -268,7 +263,7 @@ paramikojs.SFTPClient.prototype = {
     bufsize = bufsize || -1;
     current_size = current_size || 0;
     filename = this._adjust_cwd(filename);
-    this._log(DEBUG, 'open(' + filename + ', ' + mode + ')');
+    console.debug('open(' + filename + ', ' + mode + ')');
     var imode = 0;
     if (mode.indexOf('r') != -1 || mode.indexOf('+') != -1) {
       imode |= this.SFTP_FLAG_READ;
@@ -294,7 +289,7 @@ paramikojs.SFTPClient.prototype = {
         return;
       }
       var handle = result[1].get_string();
-      self._log(DEBUG, 'open(' + filename + ', ' + mode + ') -> ' + paramikojs.util.hexify(handle));
+      console.debug('open(' + filename + ', ' + mode + ') -> ' + paramikojs.util.hexify(handle));
       open_callback(new paramikojs.SFTPFile(self, handle, mode, bufsize, current_size));
     };
     this._request(this.CMD_OPEN, cmd_callback, filename, imode, attrblock);
@@ -311,7 +306,7 @@ paramikojs.SFTPClient.prototype = {
   */
   remove : function(path, callback) {
     path = this._adjust_cwd(path);
-    this._log(DEBUG, 'remove(' + path + ')');
+    console.debug('remove(' + path + ')');
 
     var self = this;
     var rm_callback = function(result, eofError, ioError) {
@@ -338,7 +333,7 @@ paramikojs.SFTPClient.prototype = {
   rename : function(oldpath, newpath, callback) {
     oldpath = this._adjust_cwd(oldpath);
     newpath = this._adjust_cwd(newpath);
-    this._log(DEBUG, 'rename(' + oldpath + ', ' + newpath + ')');
+    console.debug('rename(' + oldpath + ', ' + newpath + ')');
 
     var self = this;
     var mv_callback = function(result) {
@@ -360,7 +355,7 @@ paramikojs.SFTPClient.prototype = {
   mkdir : function(path, mode, callback) {
     mode = mode || 0777;
     path = this._adjust_cwd(path);
-    this._log(DEBUG, 'mkdir(' + path + ', ' + mode + ')');
+    console.debug('mkdir(' + path + ', ' + mode + ')');
     var attr = new paramikojs.SFTPAttributes();
     attr.st_mode = mode;
 
@@ -384,7 +379,7 @@ paramikojs.SFTPClient.prototype = {
   */
   rmdir : function(path, callback) {
     path = this._adjust_cwd(path);
-    this._log(DEBUG, 'rmdir(' + path +')');
+    console.debug('rmdir(' + path +')');
 
     var self = this;
     var rmdir_callback = function(result, eofError, ioError) {
@@ -417,7 +412,7 @@ paramikojs.SFTPClient.prototype = {
   */
   stat : function(path, callback) {
     path = this._adjust_cwd(path);
-    this._log(DEBUG, 'stat(' + path + ')');
+    console.debug('stat(' + path + ')');
 
     var self = this;
     var stat_callback = function(result, eofError, ioError) {
@@ -444,7 +439,7 @@ paramikojs.SFTPClient.prototype = {
   */
   lstat : function(path, callback) {
     path = this._adjust_cwd(path);
-    this._log(DEBUG, 'lstat(' + path + ')');
+    console.debug('lstat(' + path + ')');
 
     var self = this;
     var lstat_callback = function(result, eofError, ioError) {
@@ -470,7 +465,7 @@ paramikojs.SFTPClient.prototype = {
   */
   symlink : function(source, dest, callback) {
     dest = this._adjust_cwd(dest);
-    this._log(DEBUG, 'symlink(' + source + ', ' + dest + ')');
+    console.debug('symlink(' + source + ', ' + dest + ')');
     source = this.transport.fromUTF8.ConvertFromUnicode(source) + this.transport.fromUTF8.Finish();
 
     var self = this;
@@ -497,7 +492,7 @@ paramikojs.SFTPClient.prototype = {
   */
   chmod : function(path, mode, callback) {
     path = this._adjust_cwd(path);
-    this._log(DEBUG, 'chmod(' + path +', ' + mode + ')');
+    console.debug('chmod(' + path +', ' + mode + ')');
     var attr = new paramikojs.SFTPAttributes();
     attr.st_mode = mode;
 
@@ -527,7 +522,7 @@ paramikojs.SFTPClient.prototype = {
   */
   chown : function(path, uid, gid) {
     path = this._adjust_cwd(path);
-    this._log(DEBUG, 'chown(' + path + ', ' + uid + ', ' + gid + ')');
+    console.debug('chown(' + path + ', ' + uid + ', ' + gid + ')');
     var attr = new paramikojs.SFTPAttributes();
     attr.st_uid = uid;
     attr.st_gid = gid;
@@ -553,7 +548,7 @@ paramikojs.SFTPClient.prototype = {
     if (!times) {
       times = [new Date(), new Date()];
     }
-    this._log(DEBUG, 'utime(' + path + ', ' + times + ')');
+    console.debug('utime(' + path + ', ' + times + ')');
     var attr = new paramikojs.SFTPAttributes();
     attr.st_atime = times[0];
     attr.st_mtime = times[1];
@@ -581,7 +576,7 @@ paramikojs.SFTPClient.prototype = {
   */
   truncate : function(path, size) {
     path = this._adjust_cwd(path);
-    this._log(DEBUG, 'truncate(' + path + ', ' + size + ')');
+    console.debug('truncate(' + path + ', ' + size + ')');
     var attr = new paramikojs.SFTPAttributes();
     attr.st_size = size;
     this._request(this.CMD_SETSTAT, path, attr);
@@ -599,7 +594,7 @@ paramikojs.SFTPClient.prototype = {
   */
   readlink : function(path, callback) {    
     path = this._adjust_cwd(path);
-    this._log(DEBUG, 'readlink(' + path + ')');
+    console.debug('readlink(' + path + ')');
 
     var self = this;
     var readlink_callback = function(result) {
@@ -616,7 +611,7 @@ paramikojs.SFTPClient.prototype = {
       try {
         path = self.transport.toUTF8.convertStringToUTF8(path, "UTF-8", 1);
       } catch(ex) {
-        self._log(DEBUG, ex);
+        console.debug(ex);
       }
       callback(path);
     };
@@ -639,7 +634,7 @@ paramikojs.SFTPClient.prototype = {
   */
   normalize : function(path, callback) {
     path = this._adjust_cwd(path);
-    this._log(DEBUG, 'normalize(' + path + ')');
+    console.debug('normalize(' + path + ')');
 
     var self = this;
     var normalize_callback = function(result) {
@@ -656,7 +651,7 @@ paramikojs.SFTPClient.prototype = {
       try {
         path = self.transport.toUTF8.convertStringToUTF8(path, "UTF-8", 1);
       } catch(ex) {
-        self._log(DEBUG, ex);
+        console.debug(ex);
       }
       callback(path);
     };
@@ -754,18 +749,18 @@ paramikojs.SFTPClient.prototype = {
     try {
       fl = localFile.init(localpath);
       remoteSize = remoteSize == -1 ? 0 : remoteSize;
-      fileInstream = Components.classes["@mozilla.org/network/file-input-stream;1"].createInstance();
-      fileInstream.QueryInterface(Components.interfaces.nsIFileInputStream);
+      fileInstream = window.Components.classes["@mozilla.org/network/file-input-stream;1"].createInstance();
+      fileInstream.QueryInterface(window.Components.interfaces.nsIFileInputStream);
       fileInstream.init(fl, 0x01, 0644, 0);
-      fileInstream.QueryInterface(Components.interfaces.nsISeekableStream);
+      fileInstream.QueryInterface(window.Components.interfaces.nsISeekableStream);
       fileInstream.seek(0, remoteSize);                                      // append or not to append
 
-      dataInstream = Components.classes["@mozilla.org/binaryinputstream;1"].createInstance(Components.interfaces.nsIBinaryInputStream);
+      dataInstream = window.Components.classes["@mozilla.org/binaryinputstream;1"].createInstance(window.Components.interfaces.nsIBinaryInputStream);
       dataInstream.setInputStream(fileInstream);
     } catch (ex) {
-      this._log(DEBUG, ex);
+      console.debug(ex);
 
-      this._log(ERROR, gStrbundle.getFormattedString("failedUpload", [localpath]));
+      console.error(gStrbundle.getFormattedString("failedUpload", [localpath]));
 
       try {
         dataInstream.close();
@@ -847,7 +842,7 @@ paramikojs.SFTPClient.prototype = {
     try {
       fl = localFile.init(localpath);
       localSize = localSize == -1 ? 0 : localSize;
-      fileOutstream = Components.classes["@mozilla.org/network/file-output-stream;1"].createInstance(Components.interfaces.nsIFileOutputStream);
+      fileOutstream = window.Components.classes["@mozilla.org/network/file-output-stream;1"].createInstance(window.Components.interfaces.nsIFileOutputStream);
 
       if (localSize) {
         fileOutstream.init(fl, 0x04 | 0x10, 0644, 0);
@@ -855,12 +850,12 @@ paramikojs.SFTPClient.prototype = {
         fileOutstream.init(fl, 0x04 | 0x08 | 0x20, 0644, 0);
       }
 
-      binaryOutstream = Components.classes["@mozilla.org/binaryoutputstream;1"].createInstance(Components.interfaces.nsIBinaryOutputStream);
+      binaryOutstream = window.Components.classes["@mozilla.org/binaryoutputstream;1"].createInstance(window.Components.interfaces.nsIBinaryOutputStream);
       binaryOutstream.setOutputStream(fileOutstream);
     } catch (ex) {
-      this._log(DEBUG, ex);
+      console.debug(ex);
 
-      this._log(ERROR, gStrbundle.getFormattedString("failedSave", [remotepath]));
+      console.error(gStrbundle.getFormattedString("failedSave", [remotepath]));
 
       try {
         binaryOutstream.close();
@@ -1014,7 +1009,7 @@ paramikojs.SFTPClient.prototype = {
 
     if (!(num in this._expecting)) {
       // might be response for a file that was closed before responses came back
-      this._log(DEBUG, 'Unexpected response #' + num);
+      console.debug('Unexpected response #' + num);
       if (!waitfor) {
         // just doing a single check
         if (callback) {

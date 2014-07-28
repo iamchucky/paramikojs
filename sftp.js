@@ -1,5 +1,4 @@
 paramikojs.BaseSFTP = function () {
-  this.logger = paramikojs.util.get_logger();
   this.ultra_debug = false;
 }
 
@@ -147,10 +146,6 @@ paramikojs.BaseSFTP.prototype = {
     return version;
   },
 
-  _log : function(level, msg) {
-    this.logger.log(level, msg);
-  },
-
   _write_all : function(out, send_packet_callback) {
     while (out.length > 0) {
       try {
@@ -190,11 +185,10 @@ paramikojs.BaseSFTP.prototype = {
   },
 
   _send_packet : function(t, packet, send_packet_callback) {
-    //self._log(DEBUG2, 'write: %s (len=%d)' % (CMD_NAMES.get(t, '0x%02x' % t), len(packet)))
-    this.logger.log(DEBUG, 'write: ' + this.CMD_NAMES[t] + '(len=' + packet.length + ')');
+    console.debug('write: ' + this.CMD_NAMES[t] + '(len=' + packet.length + ')');
     var out = struct.pack('>I', packet.length + 1) + String.fromCharCode(t) + packet;
     if (this.ultra_debug) {
-      this.logger.log(DEBUG, paramikojs.util.format_binary(out, 'OUT: '));
+      console.debug(paramikojs.util.format_binary(out, 'OUT: '));
     }
     this._write_all(out, send_packet_callback);
   },
@@ -219,11 +213,11 @@ paramikojs.BaseSFTP.prototype = {
       }
     }
     if (this.ultra_debug) {
-      this.logger.log(DEBUG, paramikojs.util.format_binary(data, 'IN: '));
+      console.debug(paramikojs.util.format_binary(data, 'IN: '));
     }
     if (size > 0) {
       var t = data[0].charCodeAt(0);
-      this.logger.log(DEBUG, 'read: ' + this.CMD_NAMES[t] + '(len=' + (data.length - 1) + ')');
+      console.debug('read: ' + this.CMD_NAMES[t] + '(len=' + (data.length - 1) + ')');
       return [t, data.substring(1)];
     }
     return [0, ''];

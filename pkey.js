@@ -232,19 +232,19 @@ paramikojs.PKey.prototype = {
     @raise SSHException: if the key file is invalid.
   */
   _read_private_key_file : function(tag, filename, password) {
-    var file = !Components ? filename : localFile.init(filename);
+    var file = !window.Components ? filename : localFile.init(filename);
     var data = this._read_private_key(tag, file, password);
     return data;
   },
 
   _read_private_key : function(tag, f, password) {
     var lines;
-    if (!Components) {  // Chrome
+    if (!window.Components) {  // Chrome
       lines = gKeys[f];
     } else {
       lines = "";
-      var fstream = Components.classes["@mozilla.org/network/file-input-stream;1"].createInstance(Components.interfaces.nsIFileInputStream);
-      var cstream = Components.classes["@mozilla.org/intl/converter-input-stream;1"].createInstance(Components.interfaces.nsIConverterInputStream);
+      var fstream = window.Components.classes["@mozilla.org/network/file-input-stream;1"].createInstance(window.Components.interfaces.nsIFileInputStream);
+      var cstream = window.Components.classes["@mozilla.org/intl/converter-input-stream;1"].createInstance(window.Components.interfaces.nsIConverterInputStream);
       fstream.init(f, -1, 0, 0);
       cstream.init(fstream, "UTF-8", 0, 0); // you can use another encoding here if you wish
 
@@ -499,9 +499,9 @@ paramikojs.PKey.prototype = {
   },
 
   _write_private_key : function(tag, f, data, password) {
-    var foStream = Components.classes["@mozilla.org/network/file-output-stream;1"].createInstance(Components.interfaces.nsIFileOutputStream);  
+    var foStream = window.Components.classes["@mozilla.org/network/file-output-stream;1"].createInstance(window.Components.interfaces.nsIFileOutputStream);  
     foStream.init(f, 0x02 | 0x08 | 0x20, 0600, 0);  
-    var converter = Components.classes["@mozilla.org/intl/converter-output-stream;1"].createInstance(Components.interfaces.nsIConverterOutputStream);  
+    var converter = window.Components.classes["@mozilla.org/intl/converter-output-stream;1"].createInstance(window.Components.interfaces.nsIConverterOutputStream);  
     converter.init(foStream, "UTF-8", 0, 0);
 
     converter.writeString('-----BEGIN ' + tag + ' PRIVATE KEY-----\n');

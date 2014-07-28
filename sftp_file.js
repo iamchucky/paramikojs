@@ -47,7 +47,7 @@ paramikojs.SFTPFile.prototype = {
     if (this._closed) {
       return;
     }
-    this.sftp._log(DEBUG, 'close(' + paramikojs.util.hexify(this.handle) + ')');
+    console.debug('close(' + paramikojs.util.hexify(this.handle) + ')');
     if (this.pipelined) {
       this.sftp._finish_responses(this);
     }
@@ -294,7 +294,7 @@ paramikojs.SFTPFile.prototype = {
     @type mode: int
   */
   chmod : function(mode) {
-    this.sftp._log(DEBUG, 'chmod(' + paramikojs.util.hexify(this.handle) + ', ' + mode + ')');
+    console.debug('chmod(' + paramikojs.util.hexify(this.handle) + ', ' + mode + ')');
     var attr = new paramikojs.SFTPAttributes();
     attr.st_mode = mode;
     this.sftp._request(this.sftp.CMD_FSETSTAT, null, this.handle, attr);
@@ -312,7 +312,7 @@ paramikojs.SFTPFile.prototype = {
     @type gid: int
   */
   chown : function(uid, gid) {
-    this.sftp._log(DEBUG, 'chown(' + paramikojs.util.hexify(this.handle) + ', ' + uid +', ' + gid + ')');
+    console.debug('chown(' + paramikojs.util.hexify(this.handle) + ', ' + uid +', ' + gid + ')');
     var attr = new paramikojs.SFTPAttributes();
     attr.st_uid = uid;
     attr.st_gid = gid;
@@ -335,7 +335,7 @@ paramikojs.SFTPFile.prototype = {
     if (!times) {
       times = [new Date(), new Date()];
     }
-    this.sftp._log(DEBUG, 'utime(' + paramikojs.util.hexify(this.handle) + ', ' + times + ')');
+    console.debug('utime(' + paramikojs.util.hexify(this.handle) + ', ' + times + ')');
     var attr = new paramikojs.SFTPAttributes();
     attr.st_atime = times[0];
     attr.st_mtime = times[1];
@@ -351,7 +351,7 @@ paramikojs.SFTPFile.prototype = {
     @type size: int or long
   */
   truncate : function(size) {
-    this.sftp._log(DEBUG, 'truncate(' + paramikojs.util.hexify(this.handle) + ', ' + size + ')');
+    console.debug('truncate(' + paramikojs.util.hexify(this.handle) + ', ' + size + ')');
     var attr = new paramikojs.SFTPAttributes();
     attr.st_size = size;
     this.sftp._request(this.sftp.CMD_FSETSTAT, null, this.handle, attr);
@@ -492,7 +492,7 @@ paramikojs.SFTPFile.prototype = {
     @since: 1.5.4
   */
   readv : function(chunks) {
-    this.sftp._log(DEBUG, 'readv(' + paramikojs.util.hexify(this.handle) + ', ' + chunks + ')');
+    console.debug('readv(' + paramikojs.util.hexify(this.handle) + ', ' + chunks + ')');
 
     var read_chunks = [];
     for (var x = 0; x < chunks.length; ++x) {

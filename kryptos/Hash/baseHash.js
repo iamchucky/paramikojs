@@ -21,7 +21,7 @@ kryptos.hash.baseHash.prototype = {
       hashData.push(this.data.charCodeAt(x));
     }
 
-    var hashComp = Components.classes["@mozilla.org/security/hash;1"].createInstance(Components.interfaces.nsICryptoHash);
+    var hashComp = window.Components.classes["@mozilla.org/security/hash;1"].createInstance(Components.interfaces.nsICryptoHash);
     hashComp.initWithString(this.type);
     hashComp.update(hashData, hashData.length);
     var result = hashComp.finish(false);

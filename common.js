@@ -96,3 +96,11 @@ paramikojs = {
   DISCONNECT_AUTH_CANCELLED_BY_USER : 13,
   DISCONNECT_NO_MORE_AUTH_METHODS_AVAILABLE : 14
 };
+
+function inherit(derived, base) {
+  for (property in base) {
+    if (!derived[property]) {
+      derived[property] = base[property];
+    }
+  }
+}

@@ -1,10 +1,8 @@
-paramikojs.transport = function(observer) {
-  this.observer = observer;
-
+paramikojs.transport = function() {
   this.rng = new kryptos.random.Random();
   this.packetizer = new paramikojs.Packetizer(this);
   this.packetizer.set_hexdump(false);
-  this.local_version = 'SSH-' + this._PROTO_ID + '-' + this._CLIENT_ID + this.observer.version;
+  this.local_version = 'SSH-' + this._PROTO_ID + '-' + this._CLIENT_ID;
   this.remote_version = '';
   this.local_cipher = this.remote_cipher = '';
   this.local_kex_init = this.remote_kex_init = null;
@@ -37,8 +35,6 @@ paramikojs.transport = function(observer) {
 
   this.saved_exception = null;
   this.clear_to_send = false;
-  this.logger = paramikojs.util.get_logger();
-  this.packetizer.set_log(this.logger);
   this.auth_handler = null;
   this.global_response = null;     // response Message from an arbitrary global request
   this.completion_event = null;    // user-defined event callbacks
@@ -51,9 +47,9 @@ paramikojs.transport.prototype = {
   authenticatedCallback : null,
   writeCallback : null,
 
-  toUTF8 : (Components ? Components.classes["@mozilla.org/intl/utf8converterservice;1"].getService(Components.interfaces.nsIUTF8ConverterService)
+  toUTF8 : (window.Components ? window.Components.classes["@mozilla.org/intl/utf8converterservice;1"].getService(window.Components.interfaces.nsIUTF8ConverterService)
                        : { convertStringToUTF8: function(str) { return str; } }),
-  fromUTF8 : (Components ? Components.classes["@mozilla.org/intl/scriptableunicodeconverter"].getService   (Components.interfaces.nsIScriptableUnicodeConverter)
+  fromUTF8 : (window.Components ? window.Components.classes["@mozilla.org/intl/scriptableunicodeconverter"].getService   (window.Components.interfaces.nsIScriptableUnicodeConverter)
                          : { ConvertFromUnicode: function(str) { return str; }, Finish: function() { /* do nothing */ } }),
  
   _PROTO_ID : '2.0',
@@ -435,7 +431,7 @@ paramikojs.transport.prototype = {
     if (data) {
       m.add(data);
     }
-    this._log(DEBUG, 'Sending global request: ' + kind);
+    console.debug('Sending global request: ' + kind);
     this._send_user_message(m);
     return this.global_response;
   },
@@ -485,20 +481,20 @@ paramikojs.transport.prototype = {
       var key = this.get_remote_server_key();
       if (hostkey) {
         if ((key.get_name() != hostkey.get_name()) || (key.toString() != hostkey.toString())) {
-          this._log(DEBUG, 'Bad host key from server');
-          this._log(DEBUG, 'Expected: %s: %s' + hostkey.get_name() + ':' + hostkey.toString());
-          this._log(DEBUG, 'Got     : %s: %s' + key.get_name() + ': ' + key.toString());
+          console.debug('Bad host key from server');
+          console.debug('Expected: %s: %s' + hostkey.get_name() + ':' + hostkey.toString());
+          console.debug('Got     : %s: %s' + key.get_name() + ': ' + key.toString());
           throw new paramikojs.ssh_exception.SSHException('Bad host key from server');
         }
-        this._log(DEBUG, 'Host key verified (' + hostkey.get_name() + ')');
+        console.debug('Host key verified (' + hostkey.get_name() + ')');
       }
 
       if (pkey || password) {
         if (password) {
-          this._log(DEBUG, 'Attempting password auth...');
+          console.debug('Attempting password auth...');
           this.auth_password(username, password);
         } else {
-          this._log(DEBUG, 'Attempting public-key auth...');
+          console.debug('Attempting public-key auth...');
           this.auth_publickey(username, pkey);
         }
       }
@@ -784,10 +780,6 @@ paramikojs.transport.prototype = {
 
   //  internals...
 
-  _log : function(level, msg) {
-    this.logger.log(level, msg);
-  },
-
   // used by KexGex to find primes for group exchange
   _get_modulus_pack : function() {
     return this._modulus_pack;
@@ -969,16 +961,16 @@ paramikojs.transport.prototype = {
       if (chan) {
         this._channel_handler_table[msg.ptype](chan, msg.m);
       } else if (chanid in this.channels_seen) {
-        this._log(DEBUG, 'Ignoring message for dead channel ' + chanid);
+        console.debug('Ignoring message for dead channel ' + chanid);
       } else {
-        this._log(ERROR, 'Channel request for unknown channel ' + chanid);
+        console.error('Channel request for unknown channel ' + chanid);
         this.active = false;
         this.packetizer.close();
       }
     } else if (this.auth_handler && msg.ptype in this.auth_handler._handler_table) {
       this.auth_handler._handler_table[msg.ptype](this.auth_handler, msg.m);
     } else {
-      this._log(WARNING, 'Oops, unhandled type ' + msg.ptype);
+      console.warn('Oops, unhandled type ' + msg.ptype);
       var nmsg = new paramikojs.Message();
       nmsg.add_byte(String.fromCharCode(paramikojs.MSG_UNIMPLEMENTED));
       nmsg.add_int(msg.m.seqno);
@@ -1033,7 +1025,7 @@ paramikojs.transport.prototype = {
     if (version != '1.99' && version != '2.0') {
       throw new paramikojs.ssh_exception.SSHException('Incompatible version (' + version + ' instead of 2.0)');
     }
-    this._log(INFO, 'Connected (version ' + version + ', client ' + client + (comment ? + ', ' + comment : '') + ')', 'input', "info");
+    console.info('Connected (version ' + version + ', client ' + client + (comment ? + ', ' + comment : '') + ')', 'input', "info");
   },
 
   /*
@@ -1080,7 +1072,7 @@ paramikojs.transport.prototype = {
     var kex_follows = m.get_boolean();
     var unused = m.get_int();
 
-    this._log(DEBUG, 'kex algos: ' + kex_algo_list +
+    console.debug('kex algos: ' + kex_algo_list +
               '\nserver key: ' + server_key_algo_list + 
               '\nclient encrypt: ' + client_encrypt_algo_list + 
               '\nserver encrypt: ' + server_encrypt_algo_list + 
@@ -1123,7 +1115,7 @@ paramikojs.transport.prototype = {
     }
     this.local_cipher = agreed_local_ciphers[0];
     this.remote_cipher = agreed_remote_ciphers[0];
-    this._log(DEBUG, 'Ciphers agreed: local=' + this.local_cipher + ', remote=' + this.remote_cipher);
+    console.debug('Ciphers agreed: local=' + this.local_cipher + ', remote=' + this.remote_cipher);
 
     var agreed_local_macs = filter(client_mac_algo_list, this._preferred_macs);
     var agreed_remote_macs = filter(server_mac_algo_list, this._preferred_macs);
@@ -1141,7 +1133,7 @@ paramikojs.transport.prototype = {
     this.local_compression = agreed_local_compression[0];
     this.remote_compression = agreed_remote_compression[0];
 
-    this._log(DEBUG, 'using kex: ' + agreed_kex[0]
+    console.debug('using kex: ' + agreed_kex[0]
       + '\nserver key type: ' + this.host_key_type
       + '\ncipher: local ' + this.local_cipher + ', remote ' + this.remote_cipher
       + '\nmac: local ' + this.local_mac + ', remote ' + this.remote_mac
@@ -1169,7 +1161,7 @@ paramikojs.transport.prototype = {
     this.packetizer.set_inbound_cipher(engine, block_size, mac_engine, mac_size, mac_key);
     var compress_in = this._compression_info[this.remote_compression][1];
     if (compress_in && (this.remote_compression != 'zlib@openssh.com' || this.authenticated)) {
-      this._log(DEBUG, 'Switching on inbound compression ...');
+      console.debug('Switching on inbound compression ...');
       this.packetizer.set_inbound_compressor(new compress_in());
     }
   },
@@ -1191,7 +1183,7 @@ paramikojs.transport.prototype = {
     this.packetizer.set_outbound_cipher(engine, block_size, mac_engine, mac_size, mac_key);
     var compress_out = this._compression_info[this.local_compression][0];
     if (compress_out && (this.local_compression != 'zlib@openssh.com' || this.authenticated)) {
-      this._log(DEBUG, 'Switching on outbound compression ...');
+      console.debug('Switching on outbound compression ...');
       this.packetizer.set_outbound_compressor(new compress_out());
     }
     if (!this.packetizer.need_rekey()) {
@@ -1206,18 +1198,18 @@ paramikojs.transport.prototype = {
     // delayed initiation of compression
     if (this.local_compression == 'zlib@openssh.com') {
       var compress_out = this._compression_info[this.local_compression][0];
-      this._log(DEBUG, 'Switching on outbound compression ...');
+      console.debug('Switching on outbound compression ...');
       this.packetizer.set_outbound_compressor(new compress_out());
     }
     if (this.remote_compression == 'zlib@openssh.com') {
       var compress_in = this._compression_info[this.remote_compression][1];
-      this._log(DEBUG, 'Switching on inbound compression ...');
+      console.debug('Switching on inbound compression ...');
       this.packetizer.set_inbound_compressor(new compress_in());
     }
   },
 
   _parse_newkeys : function(m) {
-    this._log(DEBUG, 'Switch to new keys ...');
+    console.debug('Switch to new keys ...');
     this._activate_inbound();
     // can also free a bunch of stuff here
     this.local_kex_init = this.remote_kex_init = null;
@@ -1243,15 +1235,15 @@ paramikojs.transport.prototype = {
   _parse_disconnect : function(m) {
     var code = m.get_int();
     var desc = m.get_string();
-    this._log(INFO, 'Disconnect (code ' + code + '): ' + desc);
+    console.info('Disconnect (code ' + code + '): ' + desc);
   },
 
   _parse_global_request : function(m) {
     var kind = m.get_string();
-    this._log(DEBUG, 'Received global request ' + kind);
+    console.debug('Received global request ' + kind);
     var want_reply = m.get_boolean();
     var ok = false;
-    this._log(DEBUG, 'Rejecting "' + kind + '" global request from server.');
+    console.debug('Rejecting "' + kind + '" global request from server.');
     var extra = [];
     if (want_reply) {
       var msg = new paramikojs.Message();
@@ -1261,12 +1253,12 @@ paramikojs.transport.prototype = {
   },
 
   _parse_request_success : function(m) {
-    this._log(DEBUG, 'Global request successful.');
+    console.debug('Global request successful.');
     this.global_response = m;
   },
 
   _parse_request_failure : function(m) {
-    this._log(DEBUG, 'Global request denied.');
+    console.debug('Global request denied.');
     this.global_response = null;
   },
 
@@ -1277,11 +1269,11 @@ paramikojs.transport.prototype = {
     var server_max_packet_size = m.get_int();
     var chan = this._channels[chanid];
     if (!chan) {
-      this._log(DEBUG, 'Success for unrequested channel! [??]');
+      console.debug('Success for unrequested channel! [??]');
       return;
     }
     chan._set_remote_channel(server_chanid, server_window_size, server_max_packet_size);
-    this._log(INFO, 'Secsh channel ' + chanid + ' opened.');
+    console.info('Secsh channel ' + chanid + ' opened.');
     if (chan.on_success) {
       chan.on_success(chan);
     }
@@ -1293,7 +1285,7 @@ paramikojs.transport.prototype = {
     var reason_str = m.get_string();
     var lang = m.get_string();
     var reason_text = reason in paramikojs.CONNECTION_FAILED_CODE ? paramikojs.CONNECTION_FAILED_CODE[reason] : '(unknown code)';
-    this._log(INFO, 'Secsh channel ' + chanid + ' open FAILED: ' + reason_str + ': ' + reason_text);
+    console.info('Secsh channel ' + chanid + ' open FAILED: ' + reason_str + ': ' + reason_text);
 
     this.saved_exception = new paramikojs.ssh_exception.ChannelException(reason, reason_text);
   },
@@ -1310,17 +1302,17 @@ paramikojs.transport.prototype = {
     if (kind == 'x11' && this._x11_handler) {
       origin_addr = m.get_string();
       origin_port = m.get_int();
-      this._log(DEBUG, 'Incoming x11 connection from ' + origin_addr + ':' + origin_port);
+      console.debug('Incoming x11 connection from ' + origin_addr + ':' + origin_port);
       my_chanid = this._next_channel();
     } else if (kind == 'forwarded-tcpip' && this._tcp_handler) {
       server_addr = m.get_string();
       server_port = m.get_int();
       origin_addr = m.get_string();
       origin_port = m.get_int();
-      this._log(DEBUG, 'Incoming tcp forwarded connection from ' + origin_addr + ':' + origin_port);
+      console.debug('Incoming tcp forwarded connection from ' + origin_addr + ':' + origin_port);
       my_chanid = this._next_channel();
     } else {
-      this._log(DEBUG, 'Rejecting "' + kind + '" channel request from server.');
+      console.debug('Rejecting "' + kind + '" channel request from server.');
       reject = true;
       reason = paramikojs.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED;
     }
@@ -1350,7 +1342,7 @@ paramikojs.transport.prototype = {
     m.add_int(this.window_size);
     m.add_int(this.max_packet_size);
     this._send_message(m);
-    this._log(INFO, 'Secsh channel ' + my_chanid + ' (' + kind + ') opened.');
+    console.info('Secsh channel ' + my_chanid + ' (' + kind + ') opened.');
     if (kind == 'x11') {
       this._x11_handler(chan, [origin_addr, origin_port]);
     } else if (kind == 'forwarded-tcpip') {
@@ -1365,7 +1357,7 @@ paramikojs.transport.prototype = {
     var always_display = m.get_boolean();
     var msg = m.get_string();
     var lang = m.get_string();
-    this._log(DEBUG, 'Debug msg: ' + paramikojs.util.safe_string(msg));
+    console.debug('Debug msg: ' + paramikojs.util.safe_string(msg));
   },
 
   _get_subsystem_handler : function(name) {

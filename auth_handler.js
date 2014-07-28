@@ -134,7 +134,7 @@ paramikojs.AuthHandler.prototype = {
   _parse_service_accept : function(m) {
     var service = m.get_string();
     if (service == 'ssh-userauth') {
-      this.transport._log(DEBUG, 'userauth is OK');
+      console.debug('userauth is OK');
       var m = new paramikojs.Message();
       m.add_byte(String.fromCharCode(paramikojs.MSG_USERAUTH_REQUEST));
       m.add_string(this.username);
@@ -146,7 +146,7 @@ paramikojs.AuthHandler.prototype = {
         try {
           password = this.transport.toUTF8.convertStringToUTF8(password, "UTF-8", 1);
         } catch(ex) {
-          this.transport._log(DEBUG, ex);
+          console.debug(ex);
         }
         m.add_string(password);
       } else if (this.auth_method == 'publickey') {
@@ -172,7 +172,7 @@ paramikojs.AuthHandler.prototype = {
       }
       this.transport._send_message(m);
     } else {
-      this.transport._log(DEBUG, 'Service request "' + service + '" accepted (?)');
+      console.debug('Service request "' + service + '" accepted (?)');
     }
   },
 
@@ -180,11 +180,11 @@ paramikojs.AuthHandler.prototype = {
     // okay, send result
     var m = new paramikojs.Message();
     if (result == paramikojs.AUTH_SUCCESSFUL) {
-      this.transport._log(INFO, 'Auth granted (' + method + ').');
+      console.info('Auth granted (' + method + ').');
       m.add_byte(String.fromCharCode(paramikojs.MSG_USERAUTH_SUCCESS));
       this.authenticated = true;
     } else {
-      this.transport._log(INFO, 'Auth rejected (' + method + ').');
+      console.info('Auth rejected (' + method + ').');
       m.add_byte(String.fromCharCode(paramikojs.MSG_USERAUTH_FAILURE));
       m.add_string(this.transport.server_object.get_allowed_auths(username));
       if (result == paramikojs.AUTH_PARTIALLY_SUCCESSFUL) {
@@ -235,13 +235,13 @@ paramikojs.AuthHandler.prototype = {
     var username = m.get_string();
     var service = m.get_string();
     var method = m.get_string();
-    this.transport._log(DEBUG, 'Auth request (type=' + method + ') service=' + service + ', username=' + username);
+    console.debug('Auth request (type=' + method + ') service=' + service + ', username=' + username);
     if (service != 'ssh-connection') {
       this._disconnect_service_not_available();
       return;
     }
     if (this.auth_username && this.auth_username != username) {
-      this.transport._log(INFO, 'Auth rejected because the client attempted to change username in mid-flight');
+      console.info('Auth rejected because the client attempted to change username in mid-flight');
       this._disconnect_no_more_auth();
       return;
     }
@@ -258,7 +258,7 @@ paramikojs.AuthHandler.prototype = {
       if (changereq) {
         // always treated as failure, since we don't support changing passwords, but collect
         // the list of valid auth types from the callback anyway
-        this.transport._log(DEBUG, 'Auth request to change passwords (rejected)');
+        console.debug('Auth request to change passwords (rejected)');
         var newpassword = m.get_string();
         newpassword = this.transport.fromUTF8.ConvertFromUnicode(newpassword) + this.transport.fromUTF8.Finish();
         result = paramikojs.AUTH_FAILED;
@@ -272,7 +272,7 @@ paramikojs.AuthHandler.prototype = {
       try {
         key = this.transport._key_info[keytype](new paramikojs.Message(keyblob));
       } catch(ex) {
-        this.transport._log(INFO, 'Auth rejected: public key: ' + ex.toString());
+        console.info('Auth rejected: public key: ' + ex.toString());
         key = null;
       }
       if (!key) {
@@ -296,7 +296,7 @@ paramikojs.AuthHandler.prototype = {
         var sig = new paramikojs.Message(m.get_string());
         var blob = this._get_session_blob(key, service, username);
         if (!key.verify_ssh_sig(blob, sig)) {
-          this.transport._log(INFO, 'Auth rejected: invalid signature');
+          console.info('Auth rejected: invalid signature');
           result = paramikojs.AUTH_FAILED;
         }
       }
@@ -317,7 +317,7 @@ paramikojs.AuthHandler.prototype = {
   },
 
   _parse_userauth_success : function(m) {
-    this.transport._log(INFO, 'Authentication (' + this.auth_method + ') successful!');
+    console.info('Authentication (' + this.auth_method + ') successful!');
     this.authenticated = true;
     this.transport._auth_trigger();
     this.transport.auth_callback(true);
@@ -328,17 +328,17 @@ paramikojs.AuthHandler.prototype = {
     var partial = m.get_boolean();
     var nextOptions = null;
     if (partial) {
-      this.transport._log(INFO, 'Authentication continues...');
-      this.transport._log(DEBUG, 'Methods: ' + authlist.toString());
+      console.info('Authentication continues...');
+      console.debug('Methods: ' + authlist.toString());
       //this.transport.saved_exception = new paramikojs.ssh_exception.PartialAuthentication(authlist);
       nextOptions = authlist;
     } else if (authlist.indexOf(this.auth_method) == -1) {
-      this.transport._log(DEBUG, 'Authentication type (' + this.auth_method + ') not permitted.');
-      this.transport._log(DEBUG, 'Allowed methods: ' + authlist.toString());
+      console.debug('Authentication type (' + this.auth_method + ') not permitted.');
+      console.debug('Allowed methods: ' + authlist.toString());
       //this.transport.saved_exception = new paramikojs.ssh_exception.BadAuthenticationType('Bad authentication type', authlist);
       nextOptions = authlist;
     } else {
-      this.transport._log(INFO, 'Authentication (' + this.auth_method + ') failed.');
+      console.info('Authentication (' + this.auth_method + ') failed.');
     }
     this.authenticated = false;
     this.username = null;
@@ -348,7 +348,7 @@ paramikojs.AuthHandler.prototype = {
   _parse_userauth_banner : function(m) {
     var banner = m.get_string();
     var lang = m.get_string();
-    this.transport._log(INFO, 'Auth banner: ' + banner);
+    console.info('Auth banner: ' + banner);
     // who cares.
   },
 

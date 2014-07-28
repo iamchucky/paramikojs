@@ -290,7 +290,3 @@ paramikojs.util.setCharAt = function(str, index, ch) {    // how annoying
   return str.substr(0, index) + ch + str.substr(index + 1);
 };
 
-
-paramikojs.util.get_logger = function(name) {
-  return logging;
-}

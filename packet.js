@@ -4,7 +4,6 @@
 
 paramikojs.Packetizer = function(socket) {
   this.__socket = socket;
-  this.__logger = null;
   this.__closed = false;
   this.__dump_packets = false;
   this.__need_rekey = false;
@@ -48,10 +47,6 @@ paramikojs.Packetizer.prototype = {
   REKEY_BYTES : Math.pow(2, 29),
   REKEY_PACKETS_OVERFLOW_MAX : Math.pow(2, 29),   // Allow receiving this many packets after a re-key request before terminating
   REKEY_BYTES_OVERFLOW_MAX : Math.pow(2, 29),     // Allow receiving this many bytes after a re-key request before terminating
-
-  set_log : function(log) {
-    this.__logger = log;
-  },
 
   /*
     Switch outbound data cipher.
@@ -215,8 +210,8 @@ paramikojs.Packetizer.prototype = {
     }
     var packet = this._build_packet(data);
     if (this.__dump_packets) {
-      this._log(DEBUG, 'Write packet <' + cmd_name + '>, length ' + orig_len);
-      this._log(DEBUG, paramikojs.util.format_binary(packet, 'OUT: '));
+      console.debug('Write packet <' + cmd_name + '>, length ' + orig_len);
+      console.debug(paramikojs.util.format_binary(packet, 'OUT: '));
     }
     var out;
     if (this.__block_engine_out) {
@@ -239,7 +234,7 @@ paramikojs.Packetizer.prototype = {
     if ((this.__sent_packets >= this.REKEY_PACKETS || this.__sent_bytes >= this.REKEY_BYTES)
            && !this.__need_rekey) {
       // only ask once for rekeying
-      this._log(DEBUG, 'Rekeying (hit ' + this.__sent_packets + ' packets, ' + this.__sent_bytes + ' bytes sent)');
+      console.debug('Rekeying (hit ' + this.__sent_packets + ' packets, ' + this.__sent_bytes + ' bytes sent)');
       this.__received_bytes_overflow = 0;
       this.__received_packets_overflow = 0;
       this._trigger_rekey();
@@ -261,7 +256,7 @@ paramikojs.Packetizer.prototype = {
         header = this.__block_engine_in.decrypt(header);
       }
       if (this.__dump_packets) {
-        this._log(DEBUG, paramikojs.util.format_binary(header, 'IN: '));
+        console.debug(paramikojs.util.format_binary(header, 'IN: '));
       }
     } else {
       header = this.__decrypted_header;
@@ -294,7 +289,7 @@ paramikojs.Packetizer.prototype = {
       packet = this.__block_engine_in.decrypt(packet);
     }
     if (this.__dump_packets) {
-      this._log(DEBUG, paramikojs.util.format_binary(packet, 'IN: '));
+      console.debug(paramikojs.util.format_binary(packet, 'IN: '));
     }
     packet = leftover + packet;
 
@@ -309,7 +304,7 @@ paramikojs.Packetizer.prototype = {
     var padding = packet[0].charCodeAt(0);
     var payload = packet.substring(1, packet_size - padding);
     if (this.__dump_packets) {
-      this._log(DEBUG, 'Got payload (' + packet_size + ' bytes, ' + padding + ' padding)');
+      console.debug('Got payload (' + packet_size + ' bytes, ' + padding + ' padding)');
     }
 
     if (this.__compress_engine_in) {
@@ -336,7 +331,7 @@ paramikojs.Packetizer.prototype = {
     } else if (this.__received_packets >= this.REKEY_PACKETS ||
       this.__received_bytes >= this.REKEY_BYTES) {
       // only ask once for rekeying
-      this._log(DEBUG, 'Rekeying (hit ' + this.__received_packets + ' packets, ' + this.__received_bytes + ' bytes received)');
+      console.debug('Rekeying (hit ' + this.__received_packets + ' packets, ' + this.__received_bytes + ' bytes received)');
       this.__received_bytes_overflow = 0;
       this.__received_packets_overflow = 0;
       this._trigger_rekey();
@@ -350,7 +345,7 @@ paramikojs.Packetizer.prototype = {
       cmd_name = '$' + cmd;
     }
     if (this.__dump_packets) {
-      this._log(DEBUG, 'Read packet <' + cmd_name + '>, length ' + payload.length);
+      console.debug('Read packet <' + cmd_name + '>, length ' + payload.length);
     }
     if (false) {
       this.__socket.run({ 'ptype': cmd, 'm': msg });
@@ -360,10 +355,6 @@ paramikojs.Packetizer.prototype = {
 
 
   //  protected
-
-  _log : function(level, msg) {
-    this.__logger.log(level, msg);
-  },
 
   _check_keepalive : function() {
     if (!this.__keepalive_interval || !this.__block_engine_out || this.__need_rekey) {

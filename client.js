@@ -12,7 +12,7 @@ paramikojs.AutoAddPolicy.prototype = {
     if (client._host_keys_filename) {
       client.save_host_keys(client._host_keys_filename);
     }
-    debug('Adding ' + key.get_name() + ' host key for ' + hostname + ': ' + paramikojs.util.hexify(key.get_fingerprint()));
+    console.debug('Adding ' + key.get_name() + ' host key for ' + hostname + ': ' + paramikojs.util.hexify(key.get_fingerprint()));
 
     callback(true);
   }
@@ -41,7 +41,7 @@ paramikojs.AskPolicy.prototype = {
         if (client._host_keys_filename) {
           client.save_host_keys(client._host_keys_filename);
         }
-        debug('Adding ' + key.get_name() + ' host key for ' + hostname + ': ' + fingerprint);
+        console.debug('Adding ' + key.get_name() + ' host key for ' + hostname + ': ' + fingerprint);
         callback(true);
       } else if (!answer) {
         callback(false);
@@ -50,7 +50,7 @@ paramikojs.AskPolicy.prototype = {
       }
     };
 
-    client._observer.onSftpCache(null, key.get_name() + ' ' + key.get_bits() + '\n' + fingerprint, cacheCallback);
+    //client._observer.onSftpCache(null, key.get_name() + ' ' + key.get_bits() + '\n' + fingerprint, cacheCallback);
   }
 };
 
@@ -65,7 +65,7 @@ paramikojs.RejectPolicy = function () {
 
 paramikojs.RejectPolicy.prototype = {
 	missing_host_key : function(client, hostname, key, callback) {
-    debug('Rejecting ' + key.get_name() + ' host key for ' + hostname + ': ' + paramikojs.util.hexify(key.get_fingerprint()));
+    console.debug('Rejecting ' + key.get_name() + ' host key for ' + hostname + ': ' + paramikojs.util.hexify(key.get_fingerprint()));
     callback(false);
   }
 };
@@ -81,7 +81,7 @@ paramikojs.WarningPolicy = function () {
 
 paramikojs.WarningPolicy.prototype = {
 	missing_host_key : function(client, hostname, key, callback) {
-    debug('Unknown ' + key.get_name() + ' host key for ' + hostname + ': ' + paramikojs.util.hexify(key.get_fingerprint()));
+    console.debug('Unknown ' + key.get_name() + ' host key for ' + hostname + ': ' + paramikojs.util.hexify(key.get_fingerprint()));
     callback(true);
   }
 };
@@ -114,8 +114,6 @@ paramikojs.SSHClient = function () {
   this._policy = new paramikojs.RejectPolicy();
   this._transport = null;
   this._agent = null;
-
-  this._observer = null;
 }
 
 paramikojs.SSHClient.prototype = {
@@ -259,7 +257,7 @@ paramikojs.SSHClient.prototype = {
         establishing an SSH session
     @raise socket.error: if a socket error occurred while connecting
   */
-  connect : function(observer, writeCallback, auth_success,
+  connect : function(writeCallback, auth_success,
             hostname, port, username, password, pkey,
             key_filename, timeout, allow_agent, look_for_keys,
             compress) {
@@ -315,8 +313,7 @@ paramikojs.SSHClient.prototype = {
       }
     };
 
-    this._observer = observer;
-    this._transport = new paramikojs.transport(observer);
+    this._transport = new paramikojs.transport();
     this._transport.writeCallback = writeCallback;
     this._transport.use_compression(compress);
     this._transport.connect(null, authenticatedCallback, username, password, pkey, auth_success);
@@ -434,7 +431,7 @@ paramikojs.SSHClient.prototype = {
 
     if (pkey) {
       try {
-        this._log(DEBUG, 'Trying SSH key ' + paramikojs.util.hexify(pkey.get_fingerprint()));
+        console.debug('Trying SSH key ' + paramikojs.util.hexify(pkey.get_fingerprint()));
         this._transport.auth_publickey(username, pkey);
         return;
       } catch (ex) {
@@ -447,11 +444,11 @@ paramikojs.SSHClient.prototype = {
         try {
           var pkey_class = [paramikojs.RSAKey, paramikojs.DSSKey][x];
           key = new pkey_class(null, null, key_filenames[y], password);
-          this._log(DEBUG, 'Trying key ' + paramikojs.util.hexify(key.get_fingerprint()) + ' from ' + key_filenames[y]);
+          console.debug('Trying key ' + paramikojs.util.hexify(key.get_fingerprint()) + ' from ' + key_filenames[y]);
           this._transport.auth_publickey(username, key);
           return;
         } catch(ex) {
-          this._log(DEBUG, 'Tried key: ' + ex.message);
+          console.debug('Tried key: ' + ex.message);
           saved_exception = ex;
         }
       }
@@ -464,7 +461,7 @@ paramikojs.SSHClient.prototype = {
 
       for (key in this._agent.get_keys()) {
         try {
-          this._log(DEBUG, 'Trying SSH agent key ' + paramikojs.util.hexify(key.get_fingerprint()));
+          console.debug('Trying SSH agent key ' + paramikojs.util.hexify(key.get_fingerprint()));
           this._transport.auth_publickey(username, key);
           return;
         } catch(ex) {
@@ -474,6 +471,7 @@ paramikojs.SSHClient.prototype = {
     }
 
     var keyfiles = [];
+    /* commented out localfiles for now
     var rsa_key = localFile.init('~/.ssh/id_rsa');
     var dsa_key = localFile.init('~/.ssh/id_dsa');
     if (rsa_key && rsa_key.exists()) {
@@ -481,7 +479,7 @@ paramikojs.SSHClient.prototype = {
     }
     if (dsa_key && dsa_key.exists()) {
       keyfiles.push([paramikojs.DSSKey, dsa_key]);
-    }
+    }*/
 
     if (!look_for_keys) {
       keyfiles = [];
@@ -490,7 +488,7 @@ paramikojs.SSHClient.prototype = {
     for (var x = 0; x < keyfiles.length; ++x) {
       try {
         key = new keyfiles[x][0](null, null, keyfiles[x][1].path, password);
-        this._log(DEBUG, 'Trying discovered key ' + paramikojs.util.hexify(key.get_fingerprint()) + ' in ' + keyfiles[x][1].path);
+        console.debug('Trying discovered key ' + paramikojs.util.hexify(key.get_fingerprint()) + ' in ' + keyfiles[x][1].path);
         this._transport.auth_publickey(username, key);
         return;
       } catch(ex) {
@@ -498,23 +496,21 @@ paramikojs.SSHClient.prototype = {
       }
     }
 
-    if (password) {
+    // even if there is no password, try authenticate it anyway
+    //if (password) {
       try {
         this._transport.auth_password(username, password);
         return;
       } catch(ex) {
         saved_exception = ex;
       }
-    }
+    //}
 
     // if we got an auth-failed exception earlier, re-raise it
     if (saved_exception) {
       throw saved_exception;
     }
     throw new paramikojs.ssh_exception.AuthenticationException('No authentication methods available');
-  },
-
-  _log : function(level, msg) {
-    this._transport._log(level, msg);
   }
+
 };

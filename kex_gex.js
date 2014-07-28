@@ -97,7 +97,7 @@ paramikojs.KexGex.prototype = {
     if (bitlen < 1024 || bitlen > 8192) {
       throw new paramikojs.ssh_exception.SSHException('Server-generated gex p (don\'t ask) is out of range (' + bitlen + ' bits)');
     }
-    this.transport._log(DEBUG, 'Got server p (' + bitlen + ' bits)');
+    console.debug('Got server p (' + bitlen + ' bits)');
     this._generate_x();
     // now compute e = g^x mod p
     this.e = this.g.modPow(this.x, this.p);

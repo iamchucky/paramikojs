@@ -41,7 +41,6 @@ paramikojs.Channel = function (chanid) {
   this.in_window_threshold = 0;
   this.in_window_sofar = 0;
   this._name = chanid.toString();
-  this.logger = paramikojs.util.get_logger();
   this._pipe = null;
   this.event_ready = false;
   this.combine_stderr = false;
@@ -831,7 +830,7 @@ paramikojs.Channel.prototype = {
     // threshold of bytes we receive before we bother to send a window update
     this.in_window_threshold = parseInt(window_size / 10);
     this.in_window_sofar = 0;
-    this._log(DEBUG, 'Max packet in: ' + max_packet_size + ' bytes');
+    console.debug('Max packet in: ' + max_packet_size + ' bytes');
   },
     
   _set_remote_channel : function(chanid, window_size, max_packet_size) {
@@ -839,11 +838,11 @@ paramikojs.Channel.prototype = {
     this.out_window_size = window_size;
     this.out_max_packet_size = Math.max(max_packet_size, paramikojs.Channel.MIN_PACKET_SIZE);
     this.active = 1;
-    this._log(DEBUG, 'Max packet out: ' + max_packet_size + ' bytes');
+    console.debug('Max packet out: ' + max_packet_size + ' bytes');
   },
     
   _request_success : function(m) {
-    this._log(DEBUG, 'Sesch channel ' + this.chanid + ' request ok');
+    console.debug('Sesch channel ' + this.chanid + ' request ok');
   },
 
   _request_failed : function(m) {
@@ -871,7 +870,7 @@ paramikojs.Channel.prototype = {
     var code = m.get_int();
     var s = m.get_string();
     if (code != 1) {
-      this._log(ERROR, 'unknown extended_data type ' + code + '; discarding');
+      console.error('unknown extended_data type ' + code + '; discarding');
       return;
     }
     if (this.combine_stderr) {
@@ -884,7 +883,7 @@ paramikojs.Channel.prototype = {
   _window_adjust : function(m) {
     var nbytes = m.get_int();
     if (this.ultra_debug) {
-      this._log(DEBUG, 'window up ' + nbytes);
+      console.debug('window up ' + nbytes);
     }
     this.out_window_size += nbytes;
   },
@@ -953,7 +952,7 @@ paramikojs.Channel.prototype = {
         ok = server.check_channel_x11_request(this, single_connection, auth_proto, auth_cookie, screen_number);
       }
     } else {
-      this._log(DEBUG, 'Unhandled channel request "' + key + '"');
+      console.debug('Unhandled channel request "' + key + '"');
       ok = false;
     }
     if (want_reply) {
@@ -977,7 +976,7 @@ paramikojs.Channel.prototype = {
         this._pipe.set_forever();
       }
     }
-    this._log(DEBUG, 'EOF received (' + this._name + ')');
+    console.debug('EOF received (' + this._name + ')');
   },
 
   _handle_close : function(m) {
@@ -994,10 +993,6 @@ paramikojs.Channel.prototype = {
 
   //  internals...
 
-  _log : function(level, msg) {
-    this.logger.log(level, msg);
-  },
-
   _set_closed : function() {
     this.closed = true;
     this.in_buffer = "";
@@ -1012,7 +1007,7 @@ paramikojs.Channel.prototype = {
     m.add_byte(String.fromCharCode(paramikojs.MSG_CHANNEL_EOF));
     m.add_int(this.remote_chanid);
     this.eof_sent = true;
-    this._log(DEBUG, 'EOF sent (' + this._name + ')');
+    console.debug('EOF sent (' + this._name + ')');
     return m;
   },
 
@@ -1044,14 +1039,14 @@ paramikojs.Channel.prototype = {
       return 0;
     }
     if (this.ultra_debug) {
-      this._log(DEBUG, 'addwindow ' + n);
+      console.debug('addwindow ' + n);
     }
     this.in_window_sofar += n;
     if (this.in_window_sofar <= this.in_window_threshold) {
       return 0;
     }
     if (this.ultra_debug) {
-      this._log(DEBUG, 'addwindow send ' + this.in_window_sofar);
+      console.debug('addwindow send ' + this.in_window_sofar);
     }
     var out = this.in_window_sofar;
     this.in_window_sofar = 0;
@@ -1083,7 +1078,7 @@ paramikojs.Channel.prototype = {
     }
     this.out_window_size -= size;
     if (this.ultra_debug) {
-      this._log(DEBUG, 'window down to ' + this.out_window_size);
+      console.debug('window down to ' + this.out_window_size);
     }
     return size;
   }

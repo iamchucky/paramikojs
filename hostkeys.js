@@ -123,27 +123,31 @@ paramikojs.HostKeys.prototype = {
     @raise IOError: if there was an error reading the file
   */
   load : function(filename) {
-    if (Components) { // Mozilla
+    if (window.Components) { // Mozilla
       var file = localFile.init(filename);
       if (!file.exists()) {
         this._entries = [];
         return;
       }
 
-      var fstream = Components.classes["@mozilla.org/network/file-input-stream;1"].createInstance(Components.interfaces.nsIFileInputStream);
+      var fstream = window.Components.classes["@mozilla.org/network/file-input-stream;1"].createInstance(window.Components.interfaces.nsIFileInputStream);
       fstream.init(file, -1, 0, 0);
 
       var charset = "UTF-8";
-      var is = Components.classes["@mozilla.org/intl/converter-input-stream;1"].createInstance(Components.interfaces.nsIConverterInputStream);
+      var is = window.Components.classes["@mozilla.org/intl/converter-input-stream;1"].createInstance(window.Components.interfaces.nsIConverterInputStream);
       is.init(fstream, charset, 1024, 0xFFFD);
-      is.QueryInterface(Components.interfaces.nsIUnicharLineInputStream);
+      is.QueryInterface(window.Components.interfaces.nsIUnicharLineInputStream);
       this.loadHelper(is);
-    } else {  // Chrome
+    } else if (chrome.storage) {  // Chrome
       var self = this;
       chrome.storage.local.get("host_keys", function(value) {
         is = value.host_keys || '';
         self.loadHelper(is);
       });
+    } else {
+      var is = window.localStorage['host_keys'];
+      is = is || '';
+      this.loadHelper(is);
     }
   },
 
@@ -152,7 +156,7 @@ paramikojs.HostKeys.prototype = {
     var cont;
     do {
       line = {};
-      if (Components) { // Mozilla
+      if (window.Components) { // Mozilla
         cont = is.readLine(line);
         line = line.value.trim();
       } else {  // Chrome
@@ -171,7 +175,7 @@ paramikojs.HostKeys.prototype = {
       // Now you can do something with line.value
     } while (cont);
 
-    if (Components) {
+    if (window.Components) {
       is.close();
     }
   },
@@ -190,11 +194,11 @@ paramikojs.HostKeys.prototype = {
     @since: 1.6.1
   */
   save : function(filename) {
-    if (Components) { // Mozilla
+    if (window.Components) { // Mozilla
       var file = localFile.init(filename);
-      var foStream = Components.classes["@mozilla.org/network/file-output-stream;1"].createInstance(Components.interfaces.nsIFileOutputStream);
+      var foStream = window.Components.classes["@mozilla.org/network/file-output-stream;1"].createInstance(window.Components.interfaces.nsIFileOutputStream);
       foStream.init(file, 0x02 | 0x08 | 0x20, 0644, 0);
-      var converter = Components.classes["@mozilla.org/intl/converter-output-stream;1"].createInstance(Components.interfaces.nsIConverterOutputStream);
+      var converter = window.Components.classes["@mozilla.org/intl/converter-output-stream;1"].createInstance(window.Components.interfaces.nsIConverterOutputStream);
       converter.init(foStream, "UTF-8", 0, 0);
     }
 
@@ -206,11 +210,13 @@ paramikojs.HostKeys.prototype = {
       }
     }
 
-    if (Components) { // Mozilla
+    if (window.Components) { // Mozilla
       converter.writeString(data);
       converter.close();
-    } else {
+    } else if (chrome.storage) { // Chrome
       chrome.storage.local.set({'host_keys': data});
+    } else {
+      window.localStorage['host_keys'] = data;
     }
   },
 
