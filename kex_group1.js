@@ -8,7 +8,10 @@ paramikojs.KexGroup1 = function(transport) {
   this.x = new BigInteger("0", 10);
   this.e = new BigInteger("0", 10);
   this.f = new BigInteger("0", 10);
+
   this.P = paramikojs.KexGroup1.P;
+  this.G = paramikojs.KexGroup1.G;
+  this.hash_algo = kryptos.hash.SHA;
 }
 
 paramikojs.KexGroup1._MSG_KEXDH_INIT = 30;
@@ -25,12 +28,12 @@ paramikojs.KexGroup1.prototype = {
     this._generate_x();
     if (this.transport.server_mode) {
       // compute f = g^x mod p, but don't send it yet
-      this.f = paramikojs.KexGroup1.G.modPow(this.x, this.P);
+      this.f = this.G.modPow(this.x, this.P);
       this.transport._expect_packet(paramikojs.KexGroup1._MSG_KEXDH_INIT);
       return;
     }
     // compute e = g^x mod p (where g=2), and send it
-    this.e = paramikojs.KexGroup1.G.modPow(this.x, this.P);
+    this.e = this.G.modPow(this.x, this.P);
     var m = new paramikojs.Message();
     m.add_byte(String.fromCharCode(paramikojs.KexGroup1._MSG_KEXDH_INIT));
     m.add_mpint(this.e);

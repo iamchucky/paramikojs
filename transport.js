@@ -28,8 +28,8 @@ paramikojs.transport = function() {
   this.channel_events = { };       // (id -> Event)
   this.channels_seen = { };        // (id -> True)
   this._channel_counter = 1;
-  this.window_size = 65536;
-  this.max_packet_size = 34816;
+  this.max_packet_size = Math.pow(2, 15);
+  this.window_size = 64 * this.max_packet_size;
   this._x11_handler = null;
   this._tcp_handler = null;
 
@@ -53,15 +53,15 @@ paramikojs.transport.prototype = {
                          : { ConvertFromUnicode: function(str) { return str; }, Finish: function() { /* do nothing */ } }),
  
   _PROTO_ID : '2.0',
-  _CLIENT_ID : 'FireFTP_',
+  _CLIENT_ID : 'ParamikoJS_',
 
   // todo fixme aes128-ctr is preferred on paramiko, but too slow for JS right now.  for now, using blowfish
   // working on optimizing this...
   _preferred_ciphers : [ 'blowfish-cbc', 'aes128-ctr', 'aes256-ctr', 'aes128-cbc', 'aes256-cbc', '3des-cbc',
                          'arcfour128', 'arcfour256' ],
-  _preferred_macs : [ 'hmac-sha1', 'hmac-md5', 'hmac-sha1-96', 'hmac-md5-96' ],
+  _preferred_macs : [ 'hmac-sha2-256', 'hmac-sha2-512', 'hmac-sha1', 'hmac-md5', 'hmac-sha1-96', 'hmac-md5-96' ],
   _preferred_keys : [ 'ssh-rsa', 'ssh-dss' ],
-  _preferred_kex  : [ 'diffie-hellman-group1-sha1', 'diffie-hellman-group14-sha1', 'diffie-hellman-group-exchange-sha1' ],
+  _preferred_kex  : [ 'diffie-hellman-group-exchange-sha256', 'diffie-hellman-group14-sha1', 'diffie-hellman-group-exchange-sha1', 'diffie-hellman-group1-sha1' ],
   _preferred_compression : [ 'none' ],
 
   _cipher_info : {
@@ -76,10 +76,12 @@ paramikojs.transport.prototype = {
   },
 
   _mac_info : {
-    'hmac-sha1': { 'class': kryptos.hash.HMAC_SHA, 'size': 20 },
-    'hmac-sha1-96': { 'class': kryptos.hash.HMAC_SHA, 'size': 12 },
-    'hmac-md5': { 'class': kryptos.hash.HMAC_MD5, 'size': 16 },
-    'hmac-md5-96': { 'class': kryptos.hash.HMAC_MD5, 'size': 12 }
+    'hmac-sha1': { 'class': kryptos.hash.HMAC_SHA, 'size': 20, 'digest_size': kryptos.hash.SHA.digest_size },
+    'hmac-sha1-96': { 'class': kryptos.hash.HMAC_SHA, 'size': 12, 'digest_size': kryptos.hash.SHA.digest_size },
+    'hmac-sha2-256': { 'class': kryptos.hash.HMAC_SHA256, 'size': 32, 'digest_size': kryptos.hash.SHA256.digest_size },
+    'hmac-sha2-512': { 'class': kryptos.hash.HMAC_SHA512, 'size': 64, 'digest_size': kryptos.hash.SHA512.digest_size },
+    'hmac-md5': { 'class': kryptos.hash.HMAC_MD5, 'size': 16, 'digest_size': kryptos.hash.MD5.digest_size },
+    'hmac-md5-96': { 'class': kryptos.hash.HMAC_MD5, 'size': 12, 'digest_size': kryptos.hash.MD5.digest_size }
   },
 
   _key_info : {
@@ -90,7 +92,8 @@ paramikojs.transport.prototype = {
   _kex_info : {
     'diffie-hellman-group1-sha1': function(self) { return new paramikojs.KexGroup1(self) },
     'diffie-hellman-group14-sha1': function(self) { return new paramikojs.KexGroup14(self) },
-    'diffie-hellman-group-exchange-sha1': function(self) { return new paramikojs.KexGex(self) }
+    'diffie-hellman-group-exchange-sha1': function(self) { return new paramikojs.KexGex(self) },
+    'diffie-hellman-group-exchange-sha256':  function(self) { return new paramikojs.KexGexSHA256(self) },
   },
 
   _compression_info : {
@@ -854,13 +857,14 @@ paramikojs.transport.prototype = {
     m.add_byte(id);
     m.add_bytes(this.session_id);
     var out, sofar, digest;
-    out = sofar = new kryptos.hash.SHA(m.toString()).digest();
+    var hash_algo = this.kex_engine.hash_algo;
+    out = sofar = new hash_algo(m.toString()).digest();
     while (out.length < nbytes) {
       m = new paramikojs.Message();
       m.add_mpint(this.K);
       m.add_bytes(this.H);
       m.add_bytes(sofar);
-      digest = new kryptos.hash.SHA(m.toString()).digest();
+      digest = new hash_algo(m.toString()).digest();
       out += digest;
       sofar += digest;
     }
@@ -1156,9 +1160,10 @@ paramikojs.transport.prototype = {
     var engine = this._get_cipher(this.remote_cipher, key_in, IV_in);
     var mac_size = this._mac_info[this.remote_mac]['size'];
     var mac_engine = this._mac_info[this.remote_mac]['class'];
+    var mac_engine_digest_size = this._mac_info[this.remote_mac]['digest_size'];
     // initial mac keys are done in the hash's natural size (not the potentially truncated
     // transmission size)
-    var mac_key = this._compute_key('F', mac_engine.digest_size);
+    var mac_key = this._compute_key('F', mac_engine_digest_size);
     this.packetizer.set_inbound_cipher(engine, block_size, mac_engine, mac_size, mac_key);
     var compress_in = this._compression_info[this.remote_compression][1];
     if (compress_in && (this.remote_compression != 'zlib@openssh.com' || this.authenticated)) {
@@ -1178,9 +1183,10 @@ paramikojs.transport.prototype = {
     var engine = this._get_cipher(this.local_cipher, key_out, IV_out);
     var mac_size = this._mac_info[this.local_mac]['size'];
     var mac_engine = this._mac_info[this.local_mac]['class'];
+    var mac_engine_digest_size = this._mac_info[this.local_mac]['digest_size'];
     // initial mac keys are done in the hash's natural size (not the potentially truncated
     // transmission size)
-    var mac_key = this._compute_key('E', mac_engine.digest_size);
+    var mac_key = this._compute_key('E', mac_engine_digest_size);
     this.packetizer.set_outbound_cipher(engine, block_size, mac_engine, mac_size, mac_key);
     var compress_out = this._compression_info[this.local_compression][0];
     if (compress_out && (this.local_compression != 'zlib@openssh.com' || this.authenticated)) {
