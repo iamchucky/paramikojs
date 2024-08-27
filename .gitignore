@@ -3,3 +3,5 @@
 *.svn
 *.swp
 CVS
+node_modules
+build
